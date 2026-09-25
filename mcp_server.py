@@ -13,13 +13,18 @@ try:
     from modules.browser_sniper import BrowserSniper
     from modules.solvers.raven_apm import RavenMatrixSolver
     from modules.solvers.competency_profiler import CompetencyProfiler
+    from modules.solvers.personality_inventory import PersonalityInventorySolver
+    from modules.solvers.retail_sjt import RetailSJTSolver
+    from modules.solvers.portrait_values import PortraitValuesProfiler
 except ImportError:
-    # If run standalone without package root
     import sys
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from modules.browser_sniper import BrowserSniper
     from modules.solvers.raven_apm import RavenMatrixSolver
     from modules.solvers.competency_profiler import CompetencyProfiler
+    from modules.solvers.personality_inventory import PersonalityInventorySolver
+    from modules.solvers.retail_sjt import RetailSJTSolver
+    from modules.solvers.portrait_values import PortraitValuesProfiler
 
 mcp = FastMCP("Phantom-Hand")
 
@@ -152,6 +157,31 @@ def evaluate_competency(statement_text: str) -> str:
         "dimension": dim,
         "recommended_score": score
     }, indent=2)
+
+@mcp.tool()
+def solve_personality_item(question_num: int) -> str:
+    """Returns optimal 5-point Likert response for Big Five 60-item Workplace Personality Inventory."""
+    choice = PersonalityInventorySolver.get_recommended_choice(question_num)
+    return json.dumps({"question_num": question_num, "recommended_choice": choice}, indent=2)
+
+@mcp.tool()
+def solve_retail_sjt(role: str, question_num: int) -> str:
+    """
+    Returns optimal decision and reasoning for Situational Judgement Tests.
+    Role can be 'merchandising' or 'sales'.
+    """
+    if "merchandis" in role.lower():
+        action = RetailSJTSolver.get_merchandising_action(question_num)
+    else:
+        action = RetailSJTSolver.get_sales_action(question_num)
+    return json.dumps(action, indent=2)
+
+@mcp.tool()
+def solve_portrait_value(question_num: int) -> str:
+    """Returns optimal 6-point PVQ score index and text for Schwartz Human Values items 1 to 57."""
+    idx = PortraitValuesProfiler.get_score_index(question_num)
+    text = PortraitValuesProfiler.get_option_text(question_num)
+    return json.dumps({"question_num": question_num, "score_index": idx, "option_text": text}, indent=2)
 
 if __name__ == "__main__":
     mcp.run(transport='stdio')
